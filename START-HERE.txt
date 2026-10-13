@@ -1,0 +1,23 @@
+VideoFlow Phase 4
+=================
+
+1. Install Node.js LTS from https://nodejs.org
+2. Open this folder in VS Code
+3. Read WINDOWS-SETUP.md and docs/PHASE4.md
+4. Confirm backend\.env has USE_MEMORY_DB=true
+5. Leave YOUTUBE_CLIENT_ID blank unless you have Google OAuth credentials
+6. Terminal 1:  cd backend   &&  npm install  &&  npm run dev
+7. Terminal 2:  cd frontend  &&  npm install  &&  npm run dev
+8. Open http://localhost:5173
+
+Demo password: Password123
+  editor@videoflow.local
+  reviewer@videoflow.local
+  head@videoflow.local
+  admin@videoflow.local
+
+Phase 4 demo publish:
+  Get a project to status approved (editor submit → reviewer approve → head approve)
+  Log in as head → open the project
+  Connect demo channel → Run demo publish
+  The UI says DEMO MODE. No real YouTube video is created.
