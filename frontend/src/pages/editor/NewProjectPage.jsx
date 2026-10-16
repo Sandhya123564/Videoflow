@@ -97,7 +97,7 @@ export default function NewProjectPage() {
               accept="video/*"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
-            <p className="mt-1 text-xs text-slate-500">MP4 / WebM / MOV up to 200 MB. Stored locally unless Cloudinary keys are set.</p>
+            <p className="mt-1 text-xs text-slate-500">MP4 / WebM / MOV up to 500 MB. Stored locally unless Cloudinary keys are set.</p>
           </div>
           <div>
             <label className="label">Or paste a Google Drive link</label>
