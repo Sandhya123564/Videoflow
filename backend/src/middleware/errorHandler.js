@@ -11,7 +11,7 @@ function errorHandler(err, req, res, next) {
   if (err.name === "MulterError") {
     status = 400;
     if (err.code === "LIMIT_FILE_SIZE") {
-      message = "Video is larger than the 200 MB limit";
+      message = "Video is larger than the 500 MB limit";
     } else {
       message = err.message;
     }
