@@ -58,12 +58,10 @@ async function storeUploadedVideo(file) {
     throw new Error("No file received");
   }
   if (cloudinaryReady()) {
-    try {
-      return await persistCloudinary(file);
-    } catch (err) {
-      console.warn("Cloudinary upload failed, keeping local file:", err.message);
-    }
-  }
+     throw new Error(
+       "Cloudinary is not congigured. Check Render environment variables."
+     );
+  } 
   return persistLocalFile(file);
 }
 
