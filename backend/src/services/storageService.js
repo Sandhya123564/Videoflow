@@ -14,7 +14,7 @@ async function persistLocalFile(file) {
   return {
     storageProvider: "local",
     sourceType: "upload",
-    url: /uploads/${path.basename(file.path)},
+    url: `/uploads/${path.basename(file.path)}`,
     cloudinaryPublicId: "",
     thumbnailUrl: "",
     originalFilename: file.originalname || "",
