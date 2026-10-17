@@ -4,7 +4,9 @@ const env = require("../config/env");
 
 function cloudinaryReady() {
   return Boolean(
-    env.cloudinary.cloudName && env.cloudinary.apiKey && env.cloudinary.apiSecret
+    env.cloudinary.cloudName &&
+      env.cloudinary.apiKey &&
+      env.cloudinary.apiSecret
   );
 }
 
@@ -12,7 +14,7 @@ async function persistLocalFile(file) {
   return {
     storageProvider: "local",
     sourceType: "upload",
-    url: `/uploads/${path.basename(file.path)}`,
+    url: /uploads/${path.basename(file.path)},
     cloudinaryPublicId: "",
     thumbnailUrl: "",
     originalFilename: file.originalname || "",
@@ -23,6 +25,7 @@ async function persistLocalFile(file) {
 
 async function persistCloudinary(file) {
   const cloudinary = require("cloudinary").v2;
+
   cloudinary.config({
     cloud_name: env.cloudinary.cloudName,
     api_key: env.cloudinary.apiKey,
@@ -37,7 +40,7 @@ async function persistCloudinary(file) {
   try {
     fs.unlinkSync(file.path);
   } catch {
-    /* local temp can stay if unlink fails */
+    // Temporary local file cleanup can fail safely.
   }
 
   return {
@@ -57,12 +60,17 @@ async function storeUploadedVideo(file) {
   if (!file) {
     throw new Error("No file received");
   }
-  if (cloudinaryReady()) {
-     throw new Error(
-       "Cloudinary is not congigured. Check Render environment variables."
-     );
-  } 
-  return persistLocalFile(file);
+
+  if (!cloudinaryReady()) {
+    throw new Error(
+      "Cloudinary is not configured. Check Render environment variables."
+    );
+  }
+
+  return await persistCloudinary(file);
 }
 
-module.exports = { storeUploadedVideo, cloudinaryReady };
+module.exports = {
+  storeUploadedVideo,
+  cloudinaryReady,
+};
