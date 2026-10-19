@@ -18,9 +18,6 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem("vf_token");
-    }
     return Promise.reject(err);
   }
 );
