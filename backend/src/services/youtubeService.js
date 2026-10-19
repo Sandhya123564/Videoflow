@@ -4,6 +4,8 @@ const crypto = require("crypto");
 const env = require("../config/env");
 const { User } = require("../models");
 const ApiError = require("../utils/apiError");
+const os = require("os");
+const { pipeline } = require("stream/promises");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube.upload",
@@ -379,7 +381,80 @@ function resolveLocalFile(version) {
 
   return null;
 }
+async function prepareUploadFile(version) {
+  const localFile = resolveLocalFile(version);
 
+  if (localFile) {
+    return {
+      filePath: localFile,
+      cleanup: async () => {},
+    };
+  }
+
+  if (
+    !version ||
+    version.storageProvider !== "cloudinary" ||
+    !version.url
+  ) {
+    throw new ApiError(
+      400,
+      "Current version must be an uploaded local or Cloudinary video."
+    );
+  }
+
+  const url = new URL(version.url);
+
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== "res.cloudinary.com"
+  ) {
+    throw new ApiError(
+      400,
+      "Invalid Cloudinary video URL."
+    );
+  }
+
+  const response = await fetch(url);
+
+  if (!response.ok || !response.body) {
+    throw new ApiError(
+      400,
+      "Could not download the video from Cloudinary."
+    );
+  }
+
+  const tempDir = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), "videoflow-")
+  );
+
+  const filePath = path.join(
+    tempDir,
+    path.basename(url.pathname) || "video.mp4"
+  );
+
+  try {
+    await pipeline(
+      response.body,
+      fs.createWriteStream(filePath)
+    );
+
+    return {
+      filePath,
+      cleanup: async () => {
+        await fs.promises.rm(tempDir, {
+          recursive: true,
+          force: true,
+        });
+      },
+    };
+  } catch (error) {
+    await fs.promises.rm(tempDir, {
+      recursive: true,
+      force: true,
+    });
+    throw error;
+  }
+}
 async function uploadVideo({
   user,
   filePath,
@@ -510,6 +585,7 @@ module.exports = {
   listPlaylists,
   addVideoToPlaylist,
   resolveLocalFile,
+  prepareUploadFile,
   uploadVideo,
   connectDemo,
   setProgress,

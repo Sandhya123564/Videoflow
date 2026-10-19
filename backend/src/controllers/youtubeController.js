@@ -314,23 +314,19 @@ async function runPublish({
         youtubeUrl: record.youtubeUrl,
       });
     } else {
-      const filePath = yt.resolveLocalFile(version);
+      const prepared = await yt.prepareUploadFile(version);
 
-      if (!filePath) {
-        throw new ApiError(
-          400,
-          "Real YouTube upload needs a locally stored video file. Drive-only versions cannot be uploaded from this machine. Add an uploaded MP4 as the current version."
-        );
-      }
+      let uploaded;
 
-      yt.setProgress(recordId, {
-        percent: 15,
-        status: "uploading",
-      });
+      try {
+        yt.setProgress(recordId, {
+          percent: 15,
+          status: "uploading",
+        });
 
-      const uploaded = await yt.uploadVideo({
+        uploaded = await yt.uploadVideo({
         user,
-        filePath,
+        filePath: prepared.filePath,
         title,
         description,
         tags,
@@ -340,7 +336,10 @@ async function runPublish({
             percent,
             status: "uploading",
           }),
-      });
+        });
+} finally {
+  await prepared.cleanup();
+}
 
       record.status = "succeeded";
       record.youtubeVideoId =
