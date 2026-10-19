@@ -22,6 +22,12 @@ router.post("/resend-verification", authLimiter, authController.resendVerificati
 router.get("/invites/:token", authController.invitePreview);
 router.post("/forgot", authLimiter, authController.forgotPassword);
 router.post("/reset", authLimiter, authController.resetPassword);
+router.post(
+  "/change-password",
+  authenticate,
+  authLimiter,
+  authController.changePassword
+);
 router.get("/me", authenticate, authController.me);
 router.post("/logout", authenticate, authController.logout);
 

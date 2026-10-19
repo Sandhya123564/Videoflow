@@ -17,7 +17,10 @@ const NAV = {
     { to: "/editor/new", label: "New project" },
   ],
   reviewer: [{ to: "/reviewer", label: "Assigned reviews" }],
-  head: [{ to: "/head", label: "Final queue" }],
+  head: [
+  { to: "/head", label: "Final queue" },
+  { to: "/change-password", label: "Change Password" },
+],
   admin: [
     { to: "/admin", label: "Users" },
     { to: "/admin/activity", label: "Activity" },

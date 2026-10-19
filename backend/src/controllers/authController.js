@@ -191,6 +191,35 @@ const resetPassword = asyncHandler(async (req, res) => {
   await user.save();
   res.json({ message: "Password updated. You can sign in." });
 });
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword || newPassword.length < 8) {
+    throw new ApiError(
+      400,
+      "Current password and a new password of at least 8 characters are required"
+    );
+  }
+
+  const user = await User.findById(req.user._id).select("+passwordHash");
+
+  if (!user || !user.isActive) {
+    throw new ApiError(401, "Authentication required");
+  }
+
+  const ok = await user.comparePassword(currentPassword);
+
+  if (!ok) {
+    throw new ApiError(400, "Current password is incorrect");
+  }
+
+  user.passwordHash = await User.hashPassword(newPassword);
+  user.passwordResetHash = undefined;
+  user.passwordResetExpiresAt = undefined;
+  await user.save();
+
+  res.json({ message: "Password changed successfully." });
+});
 
 module.exports = {
   register,
@@ -202,4 +231,5 @@ module.exports = {
   invitePreview,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

@@ -12,6 +12,7 @@ import EditorDashboard from "./pages/editor/EditorDashboard";
 import NewProjectPage from "./pages/editor/NewProjectPage";
 import ReviewerDashboard from "./pages/reviewer/ReviewerDashboard";
 import HeadDashboard from "./pages/head/HeadDashboard";
+import ChangePasswordPage from "./pages/shared/ChangePasswordPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ActivityPage from "./pages/admin/ActivityPage";
 import DeniedPage from "./pages/shared/DeniedPage";
@@ -92,6 +93,10 @@ export default function App() {
           }
         />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route
+  path="/change-password"
+  element={<ChangePasswordPage />}
+/>
       </Route>
 
       <Route path="/" element={<Navigate to="/login" replace />} />
