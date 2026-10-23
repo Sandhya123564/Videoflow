@@ -90,7 +90,7 @@ const { data } = await api.get("/projects", { params });
             <div className="relative">
               <Search
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
               />
               <input
                 className="input p1-10"
