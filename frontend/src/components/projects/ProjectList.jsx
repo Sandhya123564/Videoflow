@@ -6,7 +6,6 @@ import {
   SlidersHorizontal,
   CalendarDays,
   ArrowUpRight,
-  ListFilter,
 } from "lucide-react";
 import api from "../../services/api";
 import StatusBadge from "../../pages/shared/StatusBadge";
@@ -119,12 +118,9 @@ const { data } = await api.get("/projects", { params });
               />
             </div>
   <div className="relative">
-              <ListFilter
-                size={16}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              />
+              
               <select
-                className="input pl-10 capitalize"
+                className="input capitalize"
                 aria-label="Filter by status"
                 value={status}
                 onChange={(e) => {
@@ -154,12 +150,9 @@ const { data } = await api.get("/projects", { params });
               </select>
             </div>
   <div className="relative">
-              <SlidersHorizontal
-                size={16}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"
-              />
+              
               <select
-                className="input pl-10 capitalize"
+                className="input capitalize"
                 aria-label="Filter by priority"
                 value={priority}
                 onChange={(e) => {
