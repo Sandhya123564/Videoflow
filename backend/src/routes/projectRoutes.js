@@ -24,6 +24,11 @@ router.post(
   projectController.create
 );
 router.get("/:id", projectController.getOne);
+router.delete(
+  "/:id",
+  authorize("editor", "admin"),
+  projectController.deleteProject
+);
 router.patch(
   "/:id",
   authorize("editor", "admin"),

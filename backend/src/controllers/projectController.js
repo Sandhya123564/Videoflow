@@ -263,5 +263,25 @@ const submitForReview = asyncHandler(async (req, res) => {
     emailDelivery: delivery?._delivery || { mode: emailMode(), delivered: false },
   });
 });
+const deleteProject = asyncHandler(async (req, res) => {
+  const project = await Project.findById(req.params.id);
 
-module.exports = { listMine, create, getOne, update, submitForReview };
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  assertEditor(req, project);
+
+  await Promise.all([
+    VideoVersion.deleteMany({ project: project._id }),
+    Approval.deleteMany({ project: project._id }),
+    Comment.deleteMany({ project: project._id }),
+    PublishingRecord.deleteMany({ project: project._id }),
+  ]);
+
+  await Project.findByIdAndDelete(project._id);
+
+  res.json({ message: "Project deleted successfully" });
+});
+
+module.exports = { listMine, create, getOne, update, submitForReview,deleteProject, };

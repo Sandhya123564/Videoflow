@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Search,
   FolderKanban,
   SlidersHorizontal,
   CalendarDays,
@@ -32,17 +31,33 @@ export default function ProjectList({ empty }) {
       status: next.status ?? status,
       priority: next.priority ?? priority,
     };
-
-    Object.keys(params).forEach((key) => {
+Object.keys(params).forEach((key) => {
       if (!params[key]) delete params[key];
     });
-const { data } = await api.get("/projects", { params });
+
+    const { data } = await api.get("/projects", { params });
     setProjects(data.projects || []);
     setStats(data.stats || {});
     setError("");
   }
 
-  useEffect(() => {
+  async function handleDelete(project) {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${project.title}"? This cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/projects/${project._id}`);
+      await load();
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Could not delete project"
+      );
+    }
+  }
+useEffect(() => {
     load().catch((err) =>
       setError(err.response?.data?.message || "Could not load projects")
     );
@@ -55,7 +70,8 @@ const { data } = await api.get("/projects", { params });
           <div
             key={key}
             className={`rounded-2xl border border-white/[0.09] bg-gradient-to-br ${
-              STAT_STYLES[key] || "from-sky-500/10 to-transparent text-sky-200"
+              STAT_STYLES[key] ||
+              "from-sky-500/10 to-transparent text-sky-200"
             } p-4 shadow-lg shadow-black/10`}
           >
             <div className="mb-3 flex items-center justify-between gap-2">
@@ -70,7 +86,7 @@ const { data } = await api.get("/projects", { params });
           </div>
         ))}
       </div>
-  <div className="card overflow-hidden">
+ <div className="card overflow-hidden">
         <div className="border-b border-white/[0.08] p-4 sm:p-5">
           <div className="mb-4 flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-indigo-400/20 bg-indigo-500/10 text-indigo-300">
@@ -97,7 +113,8 @@ const { data } = await api.get("/projects", { params });
                 onBlur={() =>
                   load().catch((err) =>
                     setError(
-                      err.response?.data?.message || "Could not load projects"
+err.response?.data?.message ||
+                        "Could not load projects"
                     )
                   )
                 }
@@ -113,8 +130,8 @@ const { data } = await api.get("/projects", { params });
                 }}
               />
             </div>
-  <div className="relative">
-              
+
+            <div>
               <select
                 className="input capitalize"
                 aria-label="Filter by status"
@@ -124,12 +141,13 @@ const { data } = await api.get("/projects", { params });
                   setStatus(value);
                   load({ status: value }).catch((err) =>
                     setError(
-                      err.response?.data?.message || "Could not load projects"
+                      err.response?.data?.message ||
+                        "Could not load projects"
                     )
                   );
                 }}
               >
-                <option value="">All statuses</option>
+ <option value="">All statuses</option>
                 {[
                   "draft",
                   "pending_review",
@@ -145,8 +163,8 @@ const { data } = await api.get("/projects", { params });
                 ))}
               </select>
             </div>
-  <div className="relative">
-              
+
+            <div>
               <select
                 className="input capitalize"
                 aria-label="Filter by priority"
@@ -156,12 +174,13 @@ const { data } = await api.get("/projects", { params });
                   setPriority(value);
                   load({ priority: value }).catch((err) =>
                     setError(
-                      err.response?.data?.message || "Could not load projects"
+                      err.response?.data?.message ||
+                        "Could not load projects"
                     )
                   );
                 }}
               >
-                <option value="">All priorities</option>
+  <option value="">All priorities</option>
                 {["low", "normal", "high", "urgent"].map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -171,10 +190,11 @@ const { data } = await api.get("/projects", { params });
             </div>
           </div>
         </div>
-<div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
+
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-5">
           <p className="text-xs font-medium text-slate-400">
-            {projects.length} {projects.length === 1 ? "project" : "projects"}{" "}
-            displayed
+            {projects.length}{" "}
+            {projects.length === 1 ? "project" : "projects"} displayed
           </p>
           <span className="text-xs text-slate-500">
             <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -196,28 +216,33 @@ const { data } = await api.get("/projects", { params });
               No projects found
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-              {empty || "Projects will appear here when they are available."}
+              {empty ||
+                "Projects will appear here when they are available."}
             </p>
           </div>
         ) : (
           <ul className="grid gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
             {projects.map((project) => (
-              <li key={project._id}>
+              <li
+                key={project._id}
+                className="flex flex-col gap-2 rounded-2xl border border-white/[0.08] bg-[#0b1020]/65 p-3 sm:flex-row sm:items-center"
+              >
                 <Link
                   to={`/projects/${project._id}`}
-                  className="group flex flex-col gap-4 rounded-2xl border border-white/[0.08] bg-[#0b1020]/65 p-4 hover:border-indigo-400/30 hover:bg-indigo-500/[0.06] sm:flex-row sm:items-center sm:justify-between sm:p-5"
+                  className="group flex min-w-0 flex-1 flex-col gap-4 p-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/[0.08] bg-gradient-to-br from-indigo-500/15 to-violet-500/10 text-indigo-300 group-hover:border-indigo-400/20">
                       <FolderKanban size={20} />
                     </span>
-                    <div className="min-w-0">
+   <div className="min-w-0">
                       <h3 className="truncate font-display text-base font-semibold text-slate-100 group-hover:text-indigo-200">
                         {project.title}
                       </h3>
 
                       <p className="mt-1 break-all text-xs text-slate-500">
-                        {project.reviewerEmail || "No reviewer assigned"}
+                        {project.reviewerEmail ||
+                          "No reviewer assigned"}
                       </p>
 
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
@@ -226,23 +251,35 @@ const { data } = await api.get("/projects", { params });
                             Priority: {project.priority}
                           </span>
                         )}
+
                         {project.deadline && (
                           <span className="inline-flex items-center gap-1.5">
                             <CalendarDays size={13} />
-                            Due {new Date(project.deadline).toLocaleDateString()}
+                            Due{" "}
+                            {new Date(
+                              project.deadline
+                            ).toLocaleDateString()}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
+
                   <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                      <StatusBadge status={project.status} />
-                      <ArrowUpRight
+                    <StatusBadge status={project.status} />
+                    <ArrowUpRight
                       size={18}
                       className="text-slate-600 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-indigo-300"
-                      />
+                    />
                   </div>
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(project)}
+                  className="rounded-lg border border-rose-400/20 px-3 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/10"
+                 >
+                  Delete
+                </button>
               </li>
             ))}
           </ul>
