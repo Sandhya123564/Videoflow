@@ -87,13 +87,9 @@ const { data } = await api.get("/projects", { params });
           </div>
 
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="relative">
-              <Search
-                size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              />
+            <div>
               <input
-                className="input p1-10"
+                className="input px-4"
                 placeholder="Search project title..."
                 aria-label="Search project title"
                 value={q}
