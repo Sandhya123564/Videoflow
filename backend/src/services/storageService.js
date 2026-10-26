@@ -32,11 +32,11 @@ async function persistCloudinary(file) {
     api_secret: env.cloudinary.apiSecret,
   });
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    resource_type: "video",
-    folder: "videoflow",
-  });
-
+  const result = await cloudinary.uploader.upload_large(file.path, {
+  resource_type: "video",
+  folder: "videoflow",
+  chunk_size: 6000000,
+});
   try {
     fs.unlinkSync(file.path);
   } catch {
