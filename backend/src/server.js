@@ -12,6 +12,7 @@ const ApiError = require("./utils/apiError");
 const { ensureDemoUsers } = require("./utils/ensureDemoUsers");
 
 const app = express();
+app.set("trust proxy",1);
 
 app.use(
   helmet({
