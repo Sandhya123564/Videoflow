@@ -35,11 +35,23 @@ async function persistCloudinary(file) {
   let result;
 
   try {
-    result = await cloudinary.uploader.upload_large(file.path, {
+    result = await new Promise((resolve, reject) => {
+  cloudinary.uploader.upload_large(
+    file.path,
+    {
       resource_type: "video",
       folder: "videoflow",
       chunk_size: 6000000,
-    });
+    },
+    (error, uploadResult) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(uploadResult);
+      }
+    }
+  );
+});
   } catch (error) {
     throw new Error(`Cloudinary upload failed: ${error.message}`);
   }
