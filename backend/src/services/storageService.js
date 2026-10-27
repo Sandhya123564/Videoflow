@@ -68,3 +68,21 @@ async function persistCloudinary(file) {
     durationSeconds: Math.round(result.duration || 0),
   };
 }
+async function storeUploadedVideo(file) {
+  if (!file) {
+    throw new Error("No file received");
+  }
+
+  if (!cloudinaryReady()) {
+    throw new Error(
+      "Cloudinary is not configured. Check Render environment variables."
+    );
+  }
+
+  return await persistCloudinary(file);
+}
+
+module.exports = {
+  storeUploadedVideo,
+  cloudinaryReady,
+};
