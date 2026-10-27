@@ -41,7 +41,7 @@ async function persistCloudinary(file) {
       chunk_size: 6000000,
     });
   } catch (error) {
-    throw new Error(Cloudinary upload failed: ${error.message});
+    throw new Error(`Cloudinary upload failed: ${error.message}`);
   }
 
   if (!result || !result.secure_url || !result.public_id) {
