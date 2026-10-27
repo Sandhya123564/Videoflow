@@ -32,15 +32,28 @@ async function persistCloudinary(file) {
     api_secret: env.cloudinary.apiSecret,
   });
 
-  const result = await cloudinary.uploader.upload_large(file.path, {
-  resource_type: "video",
-  folder: "videoflow",
-  chunk_size: 6000000,
-});
+  let result;
+
+  try {
+    result = await cloudinary.uploader.upload_large(file.path, {
+      resource_type: "video",
+      folder: "videoflow",
+      chunk_size: 6000000,
+    });
+  } catch (error) {
+    throw new Error(Cloudinary upload failed: ${error.message});
+  }
+
+  if (!result || !result.secure_url || !result.public_id) {
+    throw new Error(
+      "Cloudinary upload did not return a valid video URL. Check Cloudinary settings and upload result."
+    );
+  }
+
   try {
     fs.unlinkSync(file.path);
   } catch {
-    // Temporary local file cleanup can fail safely.
+    // Temporary file cleanup can fail safely.
   }
 
   return {
@@ -55,22 +68,3 @@ async function persistCloudinary(file) {
     durationSeconds: Math.round(result.duration || 0),
   };
 }
-
-async function storeUploadedVideo(file) {
-  if (!file) {
-    throw new Error("No file received");
-  }
-
-  if (!cloudinaryReady()) {
-    throw new Error(
-      "Cloudinary is not configured. Check Render environment variables."
-    );
-  }
-
-  return await persistCloudinary(file);
-}
-
-module.exports = {
-  storeUploadedVideo,
-  cloudinaryReady,
-};
