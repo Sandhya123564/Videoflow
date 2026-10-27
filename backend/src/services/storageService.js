@@ -43,6 +43,7 @@ async function persistCloudinary(file) {
   } catch (error) {
     throw new Error(`Cloudinary upload failed: ${error.message}`);
   }
+  console.log("Cloudinary upload result:", JSON.stringify(result));
 
   if (!result || !result.secure_url || !result.public_id) {
     throw new Error(
