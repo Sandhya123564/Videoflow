@@ -439,8 +439,12 @@ async function prepareUploadFile(version) {
       }
 
       downloadUrl = new URL(
-        `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+      "https://drive.usercontent.google.com/download"
       );
+
+      downloadUrl.searchParams.set("id", fileId);
+      downloadUrl.searchParams.set("export", "download");
+      downloadUrl.searchParams.set("confirm", "t");
     }
 
     let response = await fetch(downloadUrl, {
