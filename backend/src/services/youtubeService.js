@@ -391,35 +391,33 @@ async function prepareUploadFile(version) {
     };
   }
 
-  if (
-    !version ||
-    version.storageProvider !== "cloudinary" ||
-    !version.url
-  ) {
-    throw new ApiError(
-      400,
-      "Current version must be an uploaded local or Cloudinary video."
-    );
+  if (!version || !version.url) {
+    throw new ApiError(400, "No video URL found for this version.");
   }
 
-  const url = new URL(version.url);
+  let url;
 
-  if (
-    url.protocol !== "https:" ||
-    url.hostname !== "res.cloudinary.com"
-  ) {
-    throw new ApiError(
-      400,
-      "Invalid Cloudinary video URL."
-    );
+  try {
+    url = new URL(version.url);
+  } catch {
+    throw new ApiError(400, "Invalid video URL.");
   }
 
-  const response = await fetch(url);
+  const isCloudinary =
+    version.storageProvider === "cloudinary" &&
+    url.protocol === "https:" &&
+    url.hostname === "res.cloudinary.com";
 
-  if (!response.ok || !response.body) {
+  const isGoogleDrive =
+    version.storageProvider === "gdrive" &&
+    url.protocol === "https:" &&
+    (url.hostname === "drive.google.com" ||
+      url.hostname === "drive.usercontent.google.com");
+
+  if (!isCloudinary && !isGoogleDrive) {
     throw new ApiError(
       400,
-      "Could not download the video from Cloudinary."
+      "Video must be a local, Cloudinary, or Google Drive video."
     );
   }
 
@@ -427,16 +425,54 @@ async function prepareUploadFile(version) {
     path.join(os.tmpdir(), "videoflow-")
   );
 
-  const filePath = path.join(
-    tempDir,
-    path.basename(url.pathname) || "video.mp4"
-  );
+  const filePath = path.join(tempDir, "video.mp4");
 
   try {
+    let downloadUrl = url;
+
+    if (isGoogleDrive) {
+      const match = url.pathname.match(/\/file\/d\/([^/]+)/);
+      const fileId = match?.[1] || url.searchParams.get("id");
+
+      if (!fileId) {
+        throw new ApiError(400, "Could not identify Google Drive file ID.");
+      }
+
+      downloadUrl = new URL(
+        `https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`
+      );
+    }
+
+    const response = await fetch(downloadUrl, {
+      redirect: "follow",
+    });
+
+    if (!response.ok || !response.body) {
+      throw new ApiError(
+        400,
+        "Could not download the video. Check Google Drive sharing permissions."
+      );
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("text/html")) {
+      throw new ApiError(
+        400,
+        "Google Drive returned a confirmation or access page instead of the video. The file must be downloadable by the backend."
+      );
+    }
+
     await pipeline(
       response.body,
       fs.createWriteStream(filePath)
     );
+
+    const stat = await fs.promises.stat(filePath);
+
+    if (!stat.size) {
+      throw new ApiError(400, "Downloaded video file is empty.");
+    }
 
     return {
       filePath,
@@ -452,6 +488,7 @@ async function prepareUploadFile(version) {
       recursive: true,
       force: true,
     });
+
     throw error;
   }
 }
@@ -465,6 +502,11 @@ async function uploadVideo({
   onProgress,
 }) {
   const accessToken = await getValidAccessToken(user);
+  const fileSize = fs.statSync(filePath).size;
+
+  if (!fileSize) {
+    throw new ApiError(400, "Video file is empty.");
+  }
 
   const snippet = {
     title: title.slice(0, 100),
@@ -476,8 +518,6 @@ async function uploadVideo({
     privacyStatus: privacyStatus || "private",
   };
 
-  onProgress?.(10);
-
   const init = await fetch(
     "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
     {
@@ -486,14 +526,9 @@ async function uploadVideo({
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json; charset=UTF-8",
         "X-Upload-Content-Type": "video/*",
-        "X-Upload-Content-Length": String(
-          fs.statSync(filePath).size
-        ),
+        "X-Upload-Content-Length": String(fileSize),
       },
-      body: JSON.stringify({
-        snippet,
-        status,
-      }),
+      body: JSON.stringify({ snippet, status }),
     }
   );
 
@@ -506,13 +541,9 @@ async function uploadVideo({
 
   if (!init.ok) {
     const body = await init.text();
-
     throw new ApiError(
       400,
-      `YouTube did not accept the upload session: ${body.slice(
-        0,
-        300
-      )}`
+      `YouTube upload session failed: ${body.slice(0, 300)}`
     );
   }
 
@@ -521,36 +552,77 @@ async function uploadVideo({
   if (!sessionUrl) {
     throw new ApiError(
       400,
-      "YouTube did not return an upload session URL"
+      "YouTube did not return an upload session URL."
     );
   }
 
-  onProgress?.(25);
+  const chunkSize = 8 * 1024 * 1024;
+  const file = await fs.promises.open(filePath, "r");
+  let videoId;
 
-  const buf = fs.readFileSync(filePath);
+  try {
+    for (let start = 0; start < fileSize; start += chunkSize) {
+      const end = Math.min(start + chunkSize, fileSize) - 1;
+      const length = end - start + 1;
+      const buffer = Buffer.alloc(length);
 
-  const put = await fetch(sessionUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "video/*",
-      "Content-Length": String(buf.length),
-    },
-    body: buf,
-  });
+      const { bytesRead } = await file.read(
+        buffer, 0, length, start
+      );
 
-  const result = await put.json().catch(() => ({}));
+      if (bytesRead !== length) {
+        throw new ApiError(400, "Could not read the complete video chunk.");
+      }
 
-  if (!put.ok) {
-    throw new ApiError(
-      400,
-      result.error?.message || "YouTube upload failed"
-    );
+      const put = await fetch(sessionUrl, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken},
+          "Content-Type": "video/*",
+          "Content-Length": String(length),
+          "Content-Range": bytes ${start}-${end}/${fileSize}`,
+        },
+        body: buffer,
+      });
+
+      const isLast = end === fileSize - 1;
+
+      if (!isLast && put.status === 308) {
+        onProgress?.(
+          Math.min(99, Math.round(((end + 1) / fileSize) * 100))
+        );
+        continue;
+      }
+
+      if (!put.ok) {
+        const body = await put.text();
+        throw new ApiError(
+          400,
+          `YouTube chunk upload failed (${put.status}): ${body.slice(0, 300)}`
+        );
+      }
+
+      if (isLast) {
+        const result = await put.json().catch(() => ({}));
+        videoId = result.id;
+
+        if (!videoId) {
+          throw new ApiError(
+            400,
+            "YouTube did not return a video ID."
+          );
+        }
+      }
+
+      onProgress?.(
+        Math.min(99, Math.round(((end + 1) / fileSize) * 100))
+      );
+    }
+  } finally {
+    await file.close();
   }
 
   onProgress?.(100);
-
-  const videoId = result.id;
 
   return {
     youtubeVideoId: videoId,
