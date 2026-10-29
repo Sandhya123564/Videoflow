@@ -443,7 +443,7 @@ async function prepareUploadFile(version) {
       );
     }
 
-    const response = await fetch(downloadUrl, {
+    let response = await fetch(downloadUrl, {
       redirect: "follow",
     });
 
@@ -454,12 +454,52 @@ async function prepareUploadFile(version) {
       );
     }
 
-    const contentType = response.headers.get("content-type") || "";
+    let contentType =
+      response.headers.get("content-type") || "";
 
-    if (contentType.includes("text/html")) {
+    if (isGoogleDrive && contentType.includes("text/html")) {
+      const html = await response.text();
+
+      const cookie = response.headers.get("set-cookie") || "";
+
+      const token =
+        cookie.match(/download_warning[^=]*=([^;]+)/)?.[1] ||
+        html.match(/[?&]confirm=([0-9A-Za-z_-]+)/)?.[1] ||
+        html.match(/name="confirm"\s+value="([^"]+)"/)?.[1] ||
+        html.match(/name='confirm'\s+value='([^']+)'/)?.[1];
+
+      if (!token) {
+        throw new ApiError(
+          400,
+          "Google Drive returned a confirmation page, but no download token was found. Try downloading the video through Google Drive or use another file host."
+        );
+      }
+
+      downloadUrl.searchParams.set("confirm", token);
+
+      response = await fetch(downloadUrl, {
+        redirect: "follow",
+        headers: cookie ? { Cookie: cookie.split(",").map((part) => part.trim().split(";")[0]).join("; ") } : {},
+      });
+
+      if (!response.ok || !response.body) {
+        throw new ApiError(
+          400,
+          "Google Drive confirmation download failed."
+        );
+      }
+
+      contentType =
+        response.headers.get("content-type") || "";
+    }
+
+    if (
+      contentType.includes("text/html") ||
+      contentType.includes("application/json")
+    ) {
       throw new ApiError(
         400,
-        "Google Drive returned a confirmation or access page instead of the video. The file must be downloadable by the backend."
+        "Google Drive still returned a webpage instead of the video. The file may require a Google Drive API download."
       );
     }
 
@@ -584,7 +624,6 @@ async function uploadVideo({
         },
         body: buffer,
       });
-
       const isLast = end === fileSize - 1;
 
       if (!isLast && put.status === 308) {
