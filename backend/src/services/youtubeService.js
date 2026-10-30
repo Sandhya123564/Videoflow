@@ -621,10 +621,10 @@ async function uploadVideo({
       const put = await fetch(sessionUrl, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${accessToken},
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "video/*",
           "Content-Length": String(length),
-          "Content-Range": bytes ${start}-${end}/${fileSize}`,
+          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
         },
         body: buffer,
       });
